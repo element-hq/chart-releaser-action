@@ -50,6 +50,7 @@ main() {
   local install_only=
   local skip_packaging=
   local skip_existing=
+  local skip_cr_install=
   local mark_as_latest=true
   local packages_with_index=false
   local pages_branch=
@@ -195,6 +196,12 @@ parse_command_line() {
     --skip-existing)
       if [[ -n "${2:-}" ]]; then
         skip_existing="$2"
+        shift
+      fi
+      ;;
+    --skip-cr-install)
+      if [[ -n "${2:-}" ]]; then
+        skip_cr_install="$2"
         shift
       fi
       ;;
