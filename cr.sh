@@ -50,6 +50,7 @@ main() {
   local install_only=
   local skip_packaging=
   local skip_existing=
+  local skip_cr_install=
   local mark_as_latest=true
   local packages_with_index=false
   local pages_branch=
@@ -198,6 +199,12 @@ parse_command_line() {
         shift
       fi
       ;;
+    --skip-cr-install)
+      if [[ -n "${2:-}" ]]; then
+        skip_cr_install="$2"
+        shift
+      fi
+      ;;
     -l | --mark-as-latest)
       if [[ -n "${2:-}" ]]; then
         mark_as_latest="$2"
@@ -244,22 +251,26 @@ parse_command_line() {
 }
 
 install_chart_releaser() {
-  if [[ ! -d "$RUNNER_TOOL_CACHE" ]]; then
-    echo "Cache directory '$RUNNER_TOOL_CACHE' does not exist" >&2
-    exit 1
+  if [[ "$skip_cr_install" = false ]]; then
+    if [[ ! -d "$RUNNER_TOOL_CACHE" ]]; then
+      echo "Cache directory '$RUNNER_TOOL_CACHE' does not exist" >&2
+      exit 1
+    fi
+
+    if [[ ! -d "$install_dir" ]]; then
+      mkdir -p "$install_dir"
+
+      echo "Installing chart-releaser on $install_dir..."
+      curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_linux_amd64.tar.gz"
+      tar -xzf cr.tar.gz -C "$install_dir"
+      rm -f cr.tar.gz
+    fi
+
+    echo 'Adding cr directory to PATH...'
+    export PATH="$install_dir:$PATH"
+  else
+    echo 'Skip installing cr'
   fi
-
-  if [[ ! -d "$install_dir" ]]; then
-    mkdir -p "$install_dir"
-
-    echo "Installing chart-releaser on $install_dir..."
-    curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_linux_amd64.tar.gz"
-    tar -xzf cr.tar.gz -C "$install_dir"
-    rm -f cr.tar.gz
-  fi
-
-  echo 'Adding cr directory to PATH...'
-  export PATH="$install_dir:$PATH"
 }
 
 lookup_latest_tag() {
